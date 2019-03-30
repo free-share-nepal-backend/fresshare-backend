@@ -1,0 +1,375 @@
+﻿
+@{
+    ViewBag.Title = "Skill";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<!--inline CSS-->
+<style>
+    textarea {
+        resize: none;
+    }
+
+    #margin-top {
+        margin-top: 10px;
+    }
+</style>
+
+<!--on the case of Modal close-->
+<script>
+    $(document).ready(function () {
+        $('#skillModel').on('hidden.bs.modal', function () {
+            $('#skillId').val("");
+            $("#percentageId").val("");
+            $('#skillError').text("");
+            $('#percentageError').text("");
+        });
+
+        $("#skillId").on('input', function () {
+            $('#skillError').text("");
+        });
+
+        $("#percentageId").on('input', function () {
+            $('#percentageError').text("");
+        });
+
+    });
+</script>
+
+<button type="button" class="btn btn-info" onclick="addSkill();" style="margin-left:5px; ">Add</button>
+
+<!-- Modal -->
+<div class="modal fade" id="skillModel" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title" id="modalTitle">Add Skill</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        @Html.Label("Skill")
+                    </div>
+                    <div class="col-md-10">
+                        <textarea rows="3" id="skillId" class="form-control"></textarea>
+                        <span class="text-danger" id="skillError"></span>
+                    </div>
+                </div>
+                <div class="row" id="margin-top">
+                    <div class="col-md-2">
+                        @Html.Label("Percent")
+                    </div>
+                    <div class="col-md-10">
+                        <textarea rows="3" id="percentageId" class="form-control"></textarea>
+                        <span class="text-danger" id="percentageError"></span>
+                    </div>
+                </div>
+                @*<div class="row" id="margin-top">
+                    <div class="col-md-2">
+                        @Html.Label("Skill")
+                    </div>
+                    <div class="col-md-10">
+                        <textarea rows="3" id="skill2Id" class="form-control"></textarea>
+                        <span class="text-danger" id="skill2Error"></span>
+                    </div>
+                </div>
+                <div class="row" id="margin-top">
+                    <div class="col-md-2">
+                        @Html.Label("Percent")
+                    </div>
+                    <div class="col-md-10">
+                        <textarea rows="3" id="percent2Id" class="form-control"></textarea>
+                        <span class="text-danger" id="percent2Error"></span>
+                    </div>
+                </div>
+                <div class="row" id="margin-top">
+                    <div class="col-md-2">
+                        @Html.Label("Skill")
+                    </div>
+                    <div class="col-md-10">
+                        <textarea rows="3" id="skill3Id" class="form-control"></textarea>
+                        <span class="text-danger" id="skill3Error"></span>
+                    </div>
+                </div>
+                <div class="row" id="margin-top">
+                    <div class="col-md-2">
+                        @Html.Label("Percent")
+                    </div>
+                    <div class="col-md-10">
+                        <textarea rows="3" id="percent3Id" class="form-control"></textarea>
+                        <span class="text-danger" id="percent3Error"></span>
+                    </div>
+                </div>*@
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="saveBtnId" onclick="saveSkill();">Save</button>
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+        <!-- Modal content-->
+    </div>
+</div>
+<!--Modal-->
+
+<div>
+    <table id="skill" class="display">
+        <thead>
+            <tr>
+                <th>Skill </th>
+                <th>Percentage</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+
+<script>
+    var dataSource = [];
+
+    jQuery(function ($) {
+        $.ajax({
+            type: 'get',
+            url: '/api/Profile/Skill',
+            success: function (response) {
+                dataSource = response;
+                $('#skill').DataTable({
+                    "ajax": {
+                        "url": "/api/Profile/Skill",
+                        "dataSrc": ""
+
+                    },
+                    "columns": [
+
+                        { "data": "skills" },
+                        { "data": "percentage" },
+                        
+                         {
+                             "data": "status",
+                             "render": function (data, type, row, meta) {
+                                 if (row.status == 0) {
+                                     return '<button class="btn btn-success" onclick="previewSkill(' + row.id + ')">Show</button>'
+                                 }
+                                 else {
+                                     return '<button class="btn btn-dark" onclick="hideSkill(' + row.id + ')">Hide<b>';
+                                 }
+                             }
+                         },
+                        {
+                            "data": "null",
+                            "render": function (data, type, row, meta) {
+                                return '<button class="btn btn-primary" onclick="editSkill(' + row.id + ')">Edit</button><button class="btn btn-danger"onclick="deleteSkill(' + row.id + ')">Delete</button>'
+                            }
+                        }
+                    ]
+                });
+            },
+            error: function (response) {
+            }
+        });
+    });
+
+    function saveSkill() {
+        var skill = $('#skillId').val();
+        var percentage = $('#percentageId').val();
+        var result = checkValues(skill, percentage);
+        if (result == "fail") {
+            return false;
+        }
+
+        var values = {
+            Skills: skill,
+            Percentage: percentage,
+        };
+
+        $.ajax({
+            url: '/Skill/InsertSkill',
+            type: 'post',
+            data: { skillModel: values },
+            success: function (response) {
+                if (response == "success") {
+                    $.ajax({
+                        type: 'get',
+                        url: '/api/Profile/Skill',
+                        success: function (response) {
+                            dataSource = response;
+                            toastr.success("successfully added");
+                            $('#skill').DataTable().ajax.reload();
+                            $('#skillModel').modal('toggle');
+                        }
+                    });
+                }
+                else {
+
+                }
+            },
+            error: function (response) {
+
+            }
+
+        });
+    }
+
+    function saveEditSkill(id) {
+        var datas = $.grep(dataSource, function (e) {
+            return e.id == id;
+        });
+
+        var skill = $('#skillId').val();
+        var percentage = $('#percentageId').val();
+     
+
+        if (skill == datas[0].skills && percentage == datas[0].percentage )
+        {
+            $('#skillModel').modal('toggle');
+            return false;
+        }
+
+        var result = checkValues(skill, percentage);
+        if (result == "fail") {
+            return false;
+        }
+
+        var values = {
+            Id: id,
+            Skills: skill,
+            Percentage: percentage,
+        };
+        $.ajax({
+            type: 'put',
+            url: '/Skill/UpdateSkill',
+            data: { skillModel: values },
+            success: function (response) {
+                if (response == "success") {
+                    $.ajax({
+                        type: 'get',
+                        url: '/api/Profile/Skill',
+                        success: function (response) {
+                            dataSource = response;
+                            toastr.success("successfully updated");
+                            $('#skill').DataTable().ajax.reload();
+                            $('#skillModel').modal('toggle');
+                        }
+                    });
+                }
+            },
+            error: function (response) {
+                alert(response);
+            }
+
+        });
+    }
+
+    function editSkill(id) {
+        $('#skillModel').modal('toggle');
+        $("#modalTitle").text("Edit Skill");
+
+        var datas = $.grep(dataSource, function (e) {
+            return e.id == id;
+        });
+
+        $('#skillId').val(datas[0].skills);
+        $('#percentageId').val(datas[0].percentage);
+        var functionName = "saveEditSkill(" + id + ")";
+        $("#saveBtnId").attr("onclick", functionName);
+    }
+
+    function deleteSkill(id) {
+        bootbox.confirm("Are you sure?", function (result) {
+            if (result) {
+                $.ajax({
+                    url: '/Skill/DeleteSkill',
+                    type: 'delete',
+                    data: { id: id },
+                    success: function (response) {
+                        if (response == "success") {
+                            $.ajax({
+                                type: 'get',
+                                url: '/api/Profile/Skill',
+                                success: function (response) {
+                                    dataSource = response;
+                                    toastr.success("successfully deleted");
+                                    $('#skill').DataTable().ajax.reload();
+                                }
+                            });
+                        }
+                        else {
+                            toastr.error("cannot delete the active one");
+                        }
+                    },
+                    error: function (response) {
+                        alert(response);
+                    }
+
+                });
+            }
+        });
+    }
+
+    //call to hide or Preview the skill
+    function previewSkill(id) {
+        $.ajax({
+            type: 'put',
+            url: '/Skill/PreviewSkill',
+            data: { id: id },
+            success: function (response) {
+                if (response == "success") {
+                    toastr.success("successfully activated");
+                    $('#skill').DataTable().ajax.reload();
+                }
+            },
+            error: function (response) {
+                alert("error");
+            }
+
+        });
+    }
+
+    function hideSkill(id) {
+        $.ajax({
+            type: 'put',
+            url: '/Skill/HideSkill',
+            data: { id: id },
+            success: function (response) {
+                if (response == "success") {
+                    toastr.warning("successfully deactivated");
+                    $('#skill').DataTable().ajax.reload();
+                }
+            },
+            error: function (response) {
+                alert("error");
+            }
+
+        });
+    }
+
+    function addSkill() {
+        var functionName = "saveSkill()";
+        $("#saveBtnId").attr("onclick", functionName);
+        $("#modalTitle").text("Add Skill");
+        $('#skillModel').modal('toggle');
+    }
+
+    function checkValues(skill, percentage) {
+
+        var checkSkill = 0;
+        var checkPercentage = 0;
+
+        if (skill == "") {
+            checkSkill = 1;
+            $("#skillError").text("Required");
+        }
+
+        if (percentage == "") {
+            checkPercentage = 1;
+            $("#percentageError").text("Required");
+        }
+
+        return true;
+    }
+
+</script>
+
